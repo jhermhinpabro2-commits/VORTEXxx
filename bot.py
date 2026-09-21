@@ -321,106 +321,103 @@ async def clear_cmd(ctx, amount: int = 10):
     await ctx.channel.purge(limit=amount + 1)
     await ctx.send(f"✅ Cleared {amount} messages!", delete_after=3)
 
-# ──────────── 🎲 COINFLIP ────────────
-@bot.command(name="coinflip", aliases=["cf"])
-async def coinflip(ctx, choice=None, bet=None):
-    uid = ctx.author.id
-    if not choice or not bet:
-        em = discord.Embed(title="🎲 COINFLIP — HEADS / TAILS", description=f"Max Bet: ₱{MAX_BET:,}\nUsage: `*cf heads 5000`", color=discord.Color.gold())
-        em.add_field(name="💰 Your Balance", value=f"₱{get_bal(uid):,}", inline=True)
-        await ctx.send(embed=em)
-        return
-    choice = choice.lower()
-    if choice in ["head", "h"]: choice = "heads"
-    elif choice in ["tail", "t"]: choice = "tails"
-    if choice not in ["heads", "tails"]:
-        await ctx.send("❌ Use: `heads` or `tails`\nExample: `*cf heads 1000`", delete_after=5)
-        return
-    try: bet = int(bet)
-    except: await ctx.send("❌ Enter a number!", delete_after=5); return
-    if bet <= 0: await ctx.send("❌ Bet must be positive!", delete_after=5); return
-    if bet > MAX_BET and not is_owner(uid):
-        await ctx.send(f"❌ Max bet is ₱{MAX_BET:,} only!", delete_after=5); return
-    bal_now = get_bal(uid)
-    if not is_owner(uid) and bet > bal_now:
-        em = discord.Embed(title="❌ Insufficient Balance", color=discord.Color.red())
-        em.add_field(name="You have", value=f"₱{bal_now:,}", inline=True)
-        em.add_field(name="Your Bet", value=f"₱{bet:,}", inline=True)
-        await ctx.send(embed=em); return
-    result = random.choice(["heads", "tails"])
-    won = choice == result
-    if won:
-        new_bal = add_bal(uid, bet)
-        txt, col = "✅ YOU WON!", discord.Color.green()
-    else:
-        new_bal = add_bal(uid, -bet) if not is_owner(uid) else bal_now
-        txt, col = "❌ YOU LOST!", discord.Color.red()
-    em = discord.Embed(title="🎲 RESULT", color=col)
-    em.add_field(name="Your Pick", value=choice.upper(), inline=True)
-    em.add_field(name="Result", value=result.upper(), inline=True)
-    em.add_field(name="Bet Amount", value=f"₱{bet:,}", inline=True)
-    em.add_field(name="New Balance", value=f"₱{new_bal:,}", inline=False)
-    await ctx.send(embed=em)
-
+return ''.join(parts)
+ # ──────────── 🎲 COINFLIP ────────────
+ @bot.command(name="coinflip", aliases=["cf"])
+ async def coinflip(ctx, choice=None, bet=None):
+     uid = ctx.author.id
+     if not choice or not bet:
+         em = discord.Embed(title="🎲 COINFLIP — HEADS / TAILS", description=f"Max Bet: ₱{MAX_BET:,}\nUsage: `*cf heads 5000`", color=discord.Color.gold())
+         em.add_field(name="💰 Your Balance", value=f"₱{get_bal(uid):,}", inline=True)
+         await ctx.send(embed=em)
+         return
+     choice = choice.lower()
+     if choice in ["head", "h"]: choice = "heads"
+     elif choice in ["tail", "t"]: choice = "tails"
+     if choice not in ["heads", "tails"]:
+         await ctx.send("❌ Use: `heads` or `tails`\nExample: `*cf heads 1000`", delete_after=5)
+         return
+     try: bet = int(bet)
+     except: await ctx.send("❌ Enter a number!", delete_after=5); return
+     if bet <= 0: await ctx.send("❌ Bet must be positive!", delete_after=5); return
+     if bet > MAX_BET and not is_owner(uid):
+         await ctx.send(f"❌ Max bet is ₱{MAX_BET:,} only!", delete_after=5); return
+     bal_now = get_bal(uid)
+     if not is_owner(uid) and bet > bal_now:
+         em = discord.Embed(title="❌ Insufficient Balance", color=discord.Color.red())
+         em.add_field(name="You have", value=f"₱{bal_now:,}", inline=True)
+         em.add_field(name="Your Bet", value=f"₱{bet:,}", inline=True)
+         await ctx.send(embed=em); return
+     result = random.choice(["heads", "tails"])
+     won = choice == result
+     if won:
+         new_bal = add_bal(uid, bet)
+         txt, col = "✅ YOU WON!", discord.Color.green()
+     else:
+         new_bal = add_bal(uid, -bet) if not is_owner(uid) else bal_now
+         txt, col = "❌ YOU LOST!", discord.Color.red()
+     em = discord.Embed(title="🎲 RESULT", color=col)
+     em.add_field(name="Your Pick", value=choice.upper(), inline=True)
+     em.add_field(name="Result", value=result.upper(), inline=True)
+     em.add_field(name="Bet Amount", value=f"₱{bet:,}", inline=True)
+     em.add_field(name="New Balance", value=f"₱{new_bal:,}", inline=False)
+     await ctx.send(embed=em)
+    
 # ──────────── 💰 ECONOMY ────────────
-@bot.command(name="balance", aliases=["bal"])
-async def balance(ctx, mem: discord.Member=None):
-    mem = mem or ctx.author
-    own = " | 👑 UNLIMITED" if is_owner(mem.id) else ""
-    await ctx.send(embed=discord.Embed(title="💰 BALANCE", description=f"{mem.mention}: ₱{get_bal(mem.id):,}{own}", color=discord.Color.green()))
-
-@bot.command(name="daily")
-@commands.cooldown(1, 86400, commands.BucketType.user)
-async def daily(ctx):
-    nb = add_bal(ctx.author.id, DAILY_REWARD)
-    await ctx.send(embed=discord.Embed(title="🎁 DAILY REWARD", description=f"+₱{DAILY_REWARD} claimed!\nNew Balance: ₱{nb:,}", color=discord.Color.yellow()))
-
-@daily.error
-async def daily_error(ctx, error):
-    if isinstance(error, commands.CommandOnCooldown):
-        h = int(error.retry_after // 3600)
-        m = int((error.retry_after % 3600) // 60)
-        await ctx.send(f"⏳ Come back in {h}h {m}m!", delete_after=5)
-
-@bot.command(name="give")
-async def give(ctx, mem: discord.Member=None, amt=None):
-    uid = ctx.author.id
-    if not mem or not amt:
-        await ctx.send("❌ Usage: `*give @user 5000`", delete_after=5); return
-    if mem.id == uid:
-        await ctx.send("❌ Cannot give to yourself!", delete_after=5); return
-    try: amt = int(amt)
-    except: await ctx.send("❌ Enter a number!", delete_after=5); return
-    if amt <= 0:
-        await ctx.send("❌ Amount must be positive!", delete_after=5); return
-    reset_daily()
-    if not is_owner(uid):
-        used = daily_used.get(uid, 0)
-        if amt > DAILY_GIVE_LIMIT - used:
-            await ctx.send(f"❌ Daily limit left: ₱{DAILY_GIVE_LIMIT - used:,}", delete_after=5); return
-        if amt > get_bal(uid):
-            await ctx.send("❌ Insufficient balance!", delete_after=5); return
-        add_bal(uid, -amt)
-        daily_used[uid] = used + amt
-    add_bal(mem.id, amt)
-    em = discord.Embed(title="💸 PAYMENT SENT!", color=discord.Color.green())
-    em.add_field(name="From", value=ctx.author.mention, inline=True)
-    em.add_field(name="To", value=mem.mention, inline=True)
-    em.add_field(name="Amount", value=f"₱{amt:,}", inline=False)
-    await ctx.send(embed=em)
-
-@bot.command(name="leaderboard", aliases=["lb"])
-async def lb(ctx):
-    if not balances:
-        await ctx.send("❌ No data yet! Use `*daily` first.", delete_after=5); return
-    top = sorted(balances.items(), key=lambda x:x[1], reverse=True)[:10]
-    em = discord.Embed(title="🏆 TOP 10 RICHEST USERS", color=discord.Color.gold())
-    med = ["🥇","🥈","🥉","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"]
-    for i,(uid,b) in enumerate(top):
-        u = await bot.fetch_user(uid)
-        tag = " 👑" if is_owner(uid) else ""
-        em.add_field(name=f"{med[i]} #{i+1} — {u}{tag}", value=f"₱{b:,}", inline=False)
-    await ctx.send(embed=em)
+ @bot.command(name="balance", aliases=["bal"])
+ async def balance(ctx, mem: discord.Member=None):
+     mem = mem or ctx.author
+     own = " | 👑 UNLIMITED" if is_owner(mem.id) else ""
+     await ctx.send(embed=discord.Embed(title="💰 BALANCE", description=f"{mem.mention}: ₱{get_bal(mem.id):,}{own}", color=discord.Color.green()))
+ @bot.command(name="daily")
+ @commands.cooldown(1, 86400, commands.BucketType.user)
+ async def daily(ctx):
+     nb = add_bal(ctx.author.id, DAILY_REWARD)
+     await ctx.send(embed=discord.Embed(title="🎁 DAILY REWARD", description=f"+₱{DAILY_REWARD} claimed!\nNew Balance: ₱{nb:,}", color=discord.Color.yellow()))
+ @daily.error
+ async def daily_error(ctx, error):
+     if isinstance(error, commands.CommandOnCooldown):
+         h = int(error.retry_after // 3600)
+         m = int((error.retry_after % 3600) // 60)
+         await ctx.send(f"⏳ Come back in {h}h {m}m!", delete_after=5)
+ @bot.command(name="give")
+ async def give(ctx, mem: discord.Member=None, amt=None):
+     uid = ctx.author.id
+     if not mem or not amt:
+         await ctx.send("❌ Usage: `*give @user 5000`", delete_after=5); return
+     if mem.id == uid:
+         await ctx.send("❌ Cannot give to yourself!", delete_after=5); return
+     try: amt = int(amt)
+     except: await ctx.send("❌ Enter a number!", delete_after=5); return
+     if amt <= 0:
+         await ctx.send("❌ Amount must be positive!", delete_after=5); return
+     reset_daily()
+     if not is_owner(uid):
+         used = daily_used.get(uid, 0)
+         if amt > DAILY_GIVE_LIMIT - used:
+             await ctx.send(f"❌ Daily limit left: ₱{DAILY_GIVE_LIMIT - used:,}", delete_after=5); return
+         if amt > get_bal(uid):
+             await ctx.send("❌ Insufficient balance!", delete_after=5); return
+         add_bal(uid, -amt)
+         daily_used[uid] = used + amt
+     add_bal(mem.id, amt)
+     em = discord.Embed(title="💸 PAYMENT SENT!", color=discord.Color.green())
+     em.add_field(name="From", value=ctx.author.mention, inline=True)
+     em.add_field(name="To", value=mem.mention, inline=True)
+     em.add_field(name="Amount", value=f"₱{amt:,}", inline=False)
+     await ctx.send(embed=em)
+ @bot.command(name="leaderboard", aliases=["lb"])
+ async def lb(ctx):
+     if not balances:
+         await ctx.send("❌ No data yet! Use `*daily` first.", delete_after=5); return
+     top = sorted(balances.items(), key=lambda x:x[1], reverse=True)[:10]
+     em = discord.Embed(title="🏆 TOP 10 RICHEST USERS", color=discord.Color.gold())
+     med = ["🥇","🥈","🥉","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"]
+     for i,(uid,b) in enumerate(top):
+         u = await bot.fetch_user(uid)
+         tag = " 👑" if is_owner(uid) else ""
+         em.add_field(name=f"{med[i]} #{i+1} — {u}{tag}", value=f"₱{b:,}", inline=False)
+     await ctx.send(embed=em)
 
 # ──────────── 🎨 GRADIENT ────────────
 @bot.command(name="gradient")
@@ -473,45 +470,38 @@ async def resetall(ctx):
     
     # ──────────── 🛡️ WHITELIST COMMAND ────────────
 @bot.command(name="whitelist")
-async def whitelist_cmd(ctx, action=None, target=None):
-    if not is_owner(ctx.author.id):
-        return
-    if not action or not target:
-        em = discord.Embed(title="🛡️ WHITELIST MANAGEMENT", color=discord.Color.blue())
-        em.add_field(name="Add User", value="`*whitelist add @user`", inline=False)
-        em.add_field(name="Remove User", value="`*whitelist remove @user`", inline=False)
-        em.add_field(name="List All", value="`*whitelist list`", inline=False)
-        await ctx.send(embed=em)
-        return
-    if action.lower() == "add":
-        try:
-            user = await commands.MemberConverter().convert(ctx, target)
-            whitelisted_users.add(user.id)
-            await ctx.send(f"✅ {user.mention} ADDED TO WHITELIST — protected from anti-nuke!")
-        except:
-            await ctx.send("❌ Invalid user! Use @mention", delete_after=5)
-    elif action.lower() == "remove":
-        try:
-            user = await commands.MemberConverter().convert(ctx, target)
-            whitelisted_users.discard(user.id)
-            await ctx.send(f"✅ {user.mention} REMOVED FROM WHITELIST")
-        except:
-            await ctx.send("❌ Invalid user!", delete_after=5)
-    elif action.lower() == "list":
-        if not whitelisted_users:
-            await ctx.send("❌ No whitelisted users!")
-            return
-        em = discord.Embed(title="🛡️ WHITELISTED USERS", color=discord.Color.green())
-        desc = ""
-        for uid in whitelisted_users:
-            u = await bot.fetch_user(uid)
-            desc += f"• {u.mention} (`{u.id}`)\n"
-        em.description = desc
-        await ctx.send(embed=em)
-
-
-# ──────────── RUN BOT ────────────
-print("⏳ JHER BOT — STARTING... ✅ Beautiful Help UI ✨")
-keep_alive()  # ← DITO ILAGAY — BAGO MAG BOT.RUN!
-bot.run(BOT_TOKEN)
-
+ async def whitelist_cmd(ctx, action=None, target=None):
+     if not is_owner(ctx.author.id): return
+     if not action or not target:
+         em = discord.Embed(title="🛡️ WHITELIST MANAGEMENT", color=discord.Color.blue())
+         em.add_field(name="Add User", value="`*whitelist add @user`", inline=False)
+         em.add_field(name="Remove User", value="`*whitelist remove @user`", inline=False)
+         em.add_field(name="List All", value="`*whitelist list`", inline=False)
+         await ctx.send(embed=em)
+         return
+     if action.lower() == "add":
+         try:
+             user = await commands.MemberConverter().convert(ctx, target)
+             whitelisted_users.add(user.id)
+             await ctx.send(f"✅ {user.mention} ADDED TO WHITELIST")
+         except: await ctx.send("❌ Invalid user!", delete_after=5)
+     elif action.lower() == "remove":
+         try:
+             user = await commands.MemberConverter().convert(ctx, target)
+             whitelisted_users.discard(user.id)
+             await ctx.send(f"✅ {user.mention} REMOVED FROM WHITELIST")
+         except: await ctx.send("❌ Invalid user!", delete_after=5)
+     elif action.lower() == "list":
+         if not whitelisted_users:
+             await ctx.send("❌ No whitelisted users!"); return
+         em = discord.Embed(title="🛡️ WHITELISTED USERS", color=discord.Color.green())
+         desc = ""
+         for uid in whitelisted_users:
+             u = await bot.fetch_user(uid)
+             desc += f"• {u.mention} (`{u.id}`)\n"
+         em.description = desc
+         await ctx.send(embed=em)
+ # ──────────── KEEP ALIVE ────────────
+ app = Flask(__name__)
+ @app.route('/')
+ def home(): return "BOT ONLINE!"
